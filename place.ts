@@ -5,9 +5,7 @@ const {
   data: currentCanvas,
   width: canvasWidth,
   height: canvasHeight,
-} = await pixel(
-  "https://voyeurweb-hints-experiment-subsequent.trycloudflare.com/place.png"
-);
+} = await pixel("https://foloplace.tobycm.systems/place.png");
 
 const { data: image, width, height } = await pixel("place.png");
 
@@ -21,9 +19,7 @@ const maxRetries = 50;
 let retries = 0;
 
 async function newWs(num: number): Promise<void> {
-  const ws = new WebSocket(
-    "wss://voyeurweb-hints-experiment-subsequent.trycloudflare.com/ws"
-  );
+  const ws = new WebSocket("wss://foloplace.tobycm.systems/ws");
 
   ws.on("open", () => {
     console.log("ws", num, "ready");
@@ -64,8 +60,8 @@ async function getWS(): Promise<WebSocket> {
   return ws;
 }
 
-const startingCoord: [number, number] = [801, 519];
-const currentCoord: [number, number] = [801, 519];
+const startingCoord: [number, number] = [1079, 0];
+const currentCoord: [number, number] = [...startingCoord];
 const offset: [number, number] = [0, 0];
 
 currentCoord[0] += offset[0];
