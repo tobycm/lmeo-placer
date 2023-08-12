@@ -9,6 +9,24 @@ const {
 
 const { data: image, width, height } = await pixel("place.png");
 
+let masterWs: WebSocket;
+
+masterWs = new WebSocket("wss://foloplace.tobycm.systems/ws");
+masterWs.on("message", (data) => {
+  const view = new DataView(data as ArrayBuffer);
+  const x = view.getUint32(0, false);
+  const y = view.getUint32(4, false);
+  const r = view.getUint8(8);
+  const g = view.getUint8(9);
+  const b = view.getUint8(10);
+
+  currentCanvas[x * 4 + y * canvasWidth * 4] = r;
+  currentCanvas[x * 4 + y * canvasWidth * 4 + 1] = g;
+  currentCanvas[x * 4 + y * canvasWidth * 4 + 2] = b;
+
+  console.log("Placed pixel at", x, y);
+});
+
 const wss: WebSocket[] = [];
 
 const number_of_ws = 20;
@@ -96,9 +114,9 @@ currentPixel += offset[0] + offset[1] * width;
 
 async function getColor(
   coords: [number, number]
-): Promise<Uint8Array | boolean> {
+): Promise<Uint8Array | undefined> {
   if (currentPixel === finalPixel) {
-    return true;
+    currentPixel = 0;
   }
 
   const r = image[currentPixel * 4];
@@ -112,7 +130,7 @@ async function getColor(
   ) {
     console.log("skipping", coords);
     currentPixel++;
-    return false;
+    return;
   }
   const color = new Uint8Array([r, g, b]);
   currentPixel++;
@@ -131,17 +149,11 @@ async function getColor(
     }
 
     let coord: [number, number] = [0, 0];
-    let color: Uint8Array | boolean = false;
+    let color: Uint8Array | undefined;
 
-    while (color === false) {
+    while (color === undefined || color.constructor !== Uint8Array) {
       coord = await getCoord();
-
       color = await getColor(coord);
-
-      if (color === true) {
-        console.log("done");
-        process.exit(0);
-      }
     }
 
     console.log("Placing pixel at", coord, "...");
@@ -157,11 +169,6 @@ async function getColor(
     }
 
     ws.send(data);
-
-    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4] = color[0];
-    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 1] = color[1];
-    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 2] = color[2];
-
     await new Promise((resolve) => setTimeout(resolve, 50)); // cool down
   }
 })();
