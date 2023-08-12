@@ -78,7 +78,7 @@ async function getWS(): Promise<WebSocket> {
   return ws;
 }
 
-const startingCoord: [number, number] = [0, 0];
+const startingCoord: [number, number] = [1079, 0];
 const currentCoord: [number, number] = [...startingCoord];
 const offset: [number, number] = [0, 0];
 
@@ -92,7 +92,10 @@ const finalCoord: [number, number] = [
 async function getCoord(): Promise<[number, number]> {
   const coord: [number, number] = [currentCoord[0], currentCoord[1]];
 
-  if (currentCoord[0] === finalCoord[0]) {
+  if (currentCoord[1] === finalCoord[1] && currentCoord[0] === finalCoord[0]) {
+    currentCoord[1] = startingCoord[1];
+    currentCoord[0] = startingCoord[0];
+  } else if (currentCoord[0] === finalCoord[0]) {
     currentCoord[1]++;
     currentCoord[0] = startingCoord[0];
     await new Promise((resolve) => setTimeout(resolve, 100)); // cool down
