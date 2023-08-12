@@ -15,7 +15,7 @@ const number_of_ws = 75;
 
 let readying = number_of_ws;
 
-const maxRetries = 50;
+const maxRetries = 40 * number_of_ws;
 let retries = 0;
 
 async function newWs(num: number): Promise<void> {
