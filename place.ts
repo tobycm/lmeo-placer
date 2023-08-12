@@ -1,6 +1,14 @@
 import pixel from "image-pixels";
 import WebSocket from "ws";
 
+const {
+  data: currentCanvas,
+  width: canvasWidth,
+  height: canvasHeight,
+} = await pixel(
+  "https://voyeurweb-hints-experiment-subsequent.trycloudflare.com/place.png"
+);
+
 const { data: image, width, height } = await pixel("place.png");
 
 const wss: WebSocket[] = [];
@@ -56,8 +64,8 @@ async function getWS(): Promise<WebSocket> {
   return ws;
 }
 
-const startingCoord: [number, number] = [400, 380];
-const currentCoord: [number, number] = [400, 380];
+const startingCoord: [number, number] = [801, 519];
+const currentCoord: [number, number] = [801, 519];
 const offset: [number, number] = [0, 0];
 
 currentCoord[0] += offset[0];
@@ -73,7 +81,7 @@ async function getCoord(): Promise<[number, number]> {
   if (currentCoord[0] === finalCoord[0]) {
     currentCoord[1]++;
     currentCoord[0] = startingCoord[0];
-    await new Promise((resolve) => setTimeout(resolve, 500)); // cool down
+    await new Promise((resolve) => setTimeout(resolve, 100)); // cool down
   } else {
     currentCoord[0]++;
   }
@@ -90,7 +98,9 @@ let currentPixel = 0;
 const finalPixel = image.length / 4;
 currentPixel += offset[0] + offset[1] * width;
 
-async function getColor(): Promise<Uint8Array | true> {
+async function getColor(
+  coords: [number, number]
+): Promise<Uint8Array | boolean> {
   if (currentPixel === finalPixel) {
     return true;
   }
@@ -99,6 +109,15 @@ async function getColor(): Promise<Uint8Array | true> {
   const g = image[currentPixel * 4 + 1];
   const b = image[currentPixel * 4 + 2];
 
+  if (
+    currentCanvas[coords[0] * 4 + coords[1] * canvasWidth * 4] === r &&
+    currentCanvas[coords[0] * 4 + coords[1] * canvasWidth * 4 + 1] === g &&
+    currentCanvas[coords[0] * 4 + coords[1] * canvasWidth * 4 + 2] === b
+  ) {
+    console.log("skipping", coords);
+    currentPixel++;
+    return false;
+  }
   const color = new Uint8Array([r, g, b]);
   currentPixel++;
 
@@ -114,14 +133,20 @@ async function getColor(): Promise<Uint8Array | true> {
       console.error(e);
       return;
     }
-    const color = await getColor();
 
-    if (color === true) {
-      console.log("done");
-      return;
+    let coord: [number, number] = [0, 0];
+    let color: Uint8Array | boolean = false;
+
+    while (color === false) {
+      coord = await getCoord();
+
+      color = await getColor(coord);
+
+      if (color === true) {
+        console.log("done");
+        process.exit(0);
+      }
     }
-
-    const coord = await getCoord();
 
     console.log("Placing pixel at", coord, "...");
 
@@ -136,6 +161,10 @@ async function getColor(): Promise<Uint8Array | true> {
     }
 
     ws.send(data);
+
+    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4] = color[0];
+    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 1] = color[1];
+    currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 2] = color[2];
 
     await new Promise((resolve) => setTimeout(resolve, 15)); // cool down
   }
