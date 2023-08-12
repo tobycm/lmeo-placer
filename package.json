@@ -1,0 +1,15 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "@types/ws": "^8.5.5",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "image-pixels": "^2.2.2",
+    "tsx": "^3.12.7",
+    "ws": "^8.13.0"
+  },
+  "scripts": {
+    "start": "tsx place"
+  }
+}
