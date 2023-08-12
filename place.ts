@@ -13,7 +13,9 @@ let masterWs: WebSocket;
 
 masterWs = new WebSocket("wss://foloplace.tobycm.systems/ws");
 masterWs.on("message", (data) => {
-  const view = new DataView(data as ArrayBuffer);
+  if (data.constructor !== Buffer) return;
+
+  const view = new DataView(Uint8Array.from(data as Buffer).buffer);
   const x = view.getUint32(0, false);
   const y = view.getUint32(4, false);
   const r = view.getUint8(8);
@@ -23,13 +25,11 @@ masterWs.on("message", (data) => {
   currentCanvas[x * 4 + y * canvasWidth * 4] = r;
   currentCanvas[x * 4 + y * canvasWidth * 4 + 1] = g;
   currentCanvas[x * 4 + y * canvasWidth * 4 + 2] = b;
-
-  console.log("Placed pixel at", x, y);
 });
 
 const wss: WebSocket[] = [];
 
-const number_of_ws = 20;
+const number_of_ws = 75;
 
 let readying = number_of_ws;
 
@@ -78,7 +78,7 @@ async function getWS(): Promise<WebSocket> {
   return ws;
 }
 
-const startingCoord: [number, number] = [1079, 0];
+const startingCoord: [number, number] = [0, 0];
 const currentCoord: [number, number] = [...startingCoord];
 const offset: [number, number] = [0, 0];
 
@@ -128,7 +128,6 @@ async function getColor(
     currentCanvas[coords[0] * 4 + coords[1] * canvasWidth * 4 + 1] === g &&
     currentCanvas[coords[0] * 4 + coords[1] * canvasWidth * 4 + 2] === b
   ) {
-    console.log("skipping", coords);
     currentPixel++;
     return;
   }
@@ -169,6 +168,6 @@ async function getColor(
     }
 
     ws.send(data);
-    await new Promise((resolve) => setTimeout(resolve, 50)); // cool down
+    await new Promise((resolve) => setTimeout(resolve, 15)); // cool down
   }
 })();
