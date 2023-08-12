@@ -6,15 +6,15 @@ if (isMainThread) {
   throw new Error("this file can only be run as a worker");
 }
 
-interface WorkerData {
+export interface WorkerData {
   place: Image;
   canvas: Image;
   startingCoord: [number, number];
-  finalCoord: [number, number];
-  offset: [number, number];
+  finalX: number;
+  yOffset: number;
 }
 
-const { place, canvas, startingCoord, finalCoord, offset } =
+const { place, canvas, startingCoord, finalX, yOffset } =
   workerData as WorkerData;
 
 let ws: WebSocket | undefined;
@@ -47,13 +47,9 @@ const currentCoord: [number, number] = [...startingCoord];
 async function getCoord(): Promise<[number, number]> {
   const coord: [number, number] = [currentCoord[0], currentCoord[1]];
 
-  if (currentCoord[1] === finalCoord[1] && currentCoord[0] === finalCoord[0]) {
-    currentCoord[1] = startingCoord[1];
-    currentCoord[0] = startingCoord[0];
-  } else if (currentCoord[0] === finalCoord[0]) {
-    currentCoord[1]++;
-    currentCoord[0] = startingCoord[0];
-    await new Promise((resolve) => setTimeout(resolve, 100)); // cool down
+  if (currentCoord[0] === finalX) {
+    // done
+    process.exit(0);
   } else {
     currentCoord[0]++;
   }
@@ -62,9 +58,9 @@ async function getCoord(): Promise<[number, number]> {
 }
 
 let currentPixel = 0;
-const finalPixel = finalCoord[0] + finalCoord[1] * place.width;
+const finalPixel = place.width - 1 + yOffset * place.width;
 
-currentPixel += offset[0] + offset[1] * place.width;
+currentPixel += yOffset * place.width;
 
 async function getColor(
   coords: [number, number]

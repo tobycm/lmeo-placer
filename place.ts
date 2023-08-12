@@ -1,6 +1,7 @@
 import pixel from "image-pixels";
 import { Worker } from "worker_threads";
 import WebSocket from "ws";
+import { WorkerData } from "./worker.js";
 
 const canvas = await pixel("https://foloplace.tobycm.systems/place.png");
 
@@ -24,21 +25,20 @@ masterWs.on("message", (data) => {
   canvas.data[x * 4 + y * canvas.width * 4 + 2] = b;
 });
 
-const numberOfWorkers = 50;
+const numberOfWorkers = place.height - 1;
 
-const startingCoord: [number, number] = [514, 234];
+const startingCoord: [number, number] = [1249, 689];
 
 for (let i = 0; i < numberOfWorkers; i++) {
+  const data: WorkerData = {
+    place,
+    canvas,
+    startingCoord: [startingCoord[0], startingCoord[1] + i],
+    finalX: startingCoord[0] + place.width - 1,
+    yOffset: i,
+  };
+
   new Worker("./worker.ts", {
-    workerData: {
-      place,
-      canvas,
-      startingCoord: [startingCoord[0], startingCoord[1] + i * numberOfWorkers],
-      finalCoord: [
-        startingCoord[0] + place.width - 1,
-        startingCoord[1] + (place.height / numberOfWorkers) * i - 1,
-      ],
-      offset: [i * numberOfWorkers, 0],
-    },
+    workerData: data,
   });
 }
