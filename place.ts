@@ -11,7 +11,7 @@ const { data: image, width, height } = await pixel("place.png");
 
 const wss: WebSocket[] = [];
 
-const number_of_ws = 75;
+const number_of_ws = 20;
 
 let readying = number_of_ws;
 
@@ -127,7 +127,7 @@ async function getColor(
       ws = await getWS();
     } catch (e) {
       console.error(e);
-      return;
+      process.exit(1);
     }
 
     let coord: [number, number] = [0, 0];
@@ -162,6 +162,6 @@ async function getColor(
     currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 1] = color[1];
     currentCanvas[coord[0] * 4 + coord[1] * canvasWidth * 4 + 2] = color[2];
 
-    await new Promise((resolve) => setTimeout(resolve, 15)); // cool down
+    await new Promise((resolve) => setTimeout(resolve, 50)); // cool down
   }
 })();
