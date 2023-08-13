@@ -1,33 +1,23 @@
 import pixel from "image-pixels";
+import { io } from "socket.io-client";
 import { Worker } from "worker_threads";
-import WebSocket from "ws";
 import { WorkerData } from "./worker.js";
 
 const canvas = await pixel("https://foloplace.tobycm.systems/place.png");
 
 const place = await pixel("place.png");
 
-let masterWs: WebSocket;
+const masterWs = io("wss://foloplace.tobycm.systems/ws");
 
-masterWs = new WebSocket("wss://foloplace.tobycm.systems/ws");
-masterWs.on("message", (data) => {
-  if (data.constructor !== Buffer) return;
-
-  const view = new DataView(Uint8Array.from(data as Buffer).buffer);
-  const x = view.getUint32(0, false);
-  const y = view.getUint32(4, false);
-  const r = view.getUint8(8);
-  const g = view.getUint8(9);
-  const b = view.getUint8(10);
-
-  canvas.data[x * 4 + y * canvas.width * 4] = r;
-  canvas.data[x * 4 + y * canvas.width * 4 + 1] = g;
-  canvas.data[x * 4 + y * canvas.width * 4 + 2] = b;
+masterWs.on("place", (x, y, color) => {
+  canvas.data[x * 4 + y * canvas.width * 4] = color[0];
+  canvas.data[x * 4 + y * canvas.width * 4 + 1] = color[1];
+  canvas.data[x * 4 + y * canvas.width * 4 + 2] = color[2];
 });
 
 const numberOfWorkers = place.height - 1;
 
-const startingCoord: [number, number] = [1249, 689];
+const startingCoord: [number, number] = [1080, 200];
 
 for (let i = 0; i < numberOfWorkers; i++) {
   const data: WorkerData = {

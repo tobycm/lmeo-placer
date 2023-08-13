@@ -1,6 +1,6 @@
 import { Image } from "image-pixels";
+import io, { Socket } from "socket.io-client";
 import { isMainThread, workerData } from "worker_threads";
-import WebSocket from "ws";
 
 if (isMainThread) {
   throw new Error("this file can only be run as a worker");
@@ -17,7 +17,7 @@ export interface WorkerData {
 const { place, canvas, startingCoord, finalX, yOffset } =
   workerData as WorkerData;
 
-let ws: WebSocket | undefined;
+let ws: Socket | undefined;
 let ready = false;
 
 const maxRetries = 40;
@@ -25,21 +25,13 @@ let retries = 0;
 
 async function getWS(): Promise<void> {
   do {
-    ws = new WebSocket("wss://foloplace.tobycm.systems/ws");
-    ws.on("open", () => {
+    ws = io("wss://foloplace.tobycm.systems", { transports: ["websocket"] });
+    ws.on("connect", () => {
       ready = true;
     });
 
-    ws.on("error", (error) => {
-      console.error(error);
-
-      if (retries++ > maxRetries) {
-        throw new Error("too many retries");
-      }
-    });
     await new Promise((resolve) => setTimeout(resolve, 1000));
-  } while (ws.readyState !== WebSocket.OPEN);
-  return;
+  } while (!ws.connected);
 }
 
 const currentCoord: [number, number] = [...startingCoord];
@@ -106,17 +98,7 @@ async function getColor(
 
     console.log("Placing pixel at", coord, "...");
 
-    const data = new Uint8Array(11);
-
-    const view = new DataView(data.buffer);
-    view.setUint32(0, coord[0], false);
-    view.setUint32(4, coord[1], false);
-
-    for (let i = 0; i < 3; i++) {
-      data[8 + i] = color[i];
-    }
-
-    ws!.send(data);
+    ws!.emit("place", coord[0], coord[1], color);
     await new Promise((resolve) => setTimeout(resolve, 250)); // cool down
   }
 })();
