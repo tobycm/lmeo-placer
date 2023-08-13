@@ -1,6 +1,8 @@
 import pixel from "image-pixels";
 import { Socket, io } from "socket.io-client";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const {
   data: currentCanvas,
   width: canvasWidth,
@@ -37,7 +39,7 @@ async function newWs(num: number): Promise<void> {
   });
 
   wss.push(ws);
-  await new Promise((resolve) => setTimeout(resolve, 75));
+  await sleep(75);
 }
 
 (async () => {
@@ -46,13 +48,9 @@ async function newWs(num: number): Promise<void> {
 
 async function getWS(): Promise<Socket> {
   let ws: Socket;
-  let ded = wss.length;
   do {
     ws = wss.shift()!;
-    if (ded === 0) {
-      throw new Error("no ws available");
-    }
-    ded--;
+    await sleep(10);
   } while (!ws.connected);
   wss.push(ws);
 
@@ -79,7 +77,7 @@ async function getCoord(): Promise<[number, number]> {
   } else if (currentCoord[0] === finalCoord[0]) {
     currentCoord[1]++;
     currentCoord[0] = startingCoord[0];
-    await new Promise((resolve) => setTimeout(resolve, 100)); // cool down
+    await sleep(100);
   } else {
     currentCoord[0]++;
   }
@@ -142,6 +140,6 @@ async function getColor(
     console.log("Placing pixel at", coord, "...");
 
     ws.emit("place", coord[0], coord[1], color);
-    await new Promise((resolve) => setTimeout(resolve, 2)); // cool down
+    await sleep(50);
   }
 })();
