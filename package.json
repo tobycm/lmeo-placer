@@ -1,13 +1,13 @@
 {
   "type": "module",
   "devDependencies": {
-    "@types/ws": "^8.5.5",
+    "@types/node": "^20.4.10",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "image-pixels": "^2.2.2",
-    "tsx": "^3.12.7",
-    "ws": "^8.13.0"
+    "socket.io-client": "^4.7.2",
+    "tsx": "^3.12.7"
   },
   "scripts": {
     "start": "tsx place"
