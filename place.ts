@@ -10,6 +10,7 @@ const {
 const { data: image, width, height } = await pixel("place.png");
 
 let masterWs = io("wss://foloplace.tobycm.systems/", {
+  forceNew: true,
   transports: ["websocket"],
 });
 masterWs.on("place", (x, y, color) => {
@@ -18,7 +19,7 @@ masterWs.on("place", (x, y, color) => {
   currentCanvas[x * 4 + y * canvasWidth * 4 + 2] = color[2];
 });
 
-const number_of_ws = 5;
+const number_of_ws = 1;
 
 const wss: Socket[] = [];
 
@@ -26,6 +27,7 @@ let readying = number_of_ws;
 
 async function newWs(num: number): Promise<void> {
   const ws = io("wss://foloplace.tobycm.systems", {
+    forceNew: true,
     transports: ["websocket"],
   });
 
@@ -47,17 +49,17 @@ async function getWS(): Promise<Socket> {
   let ded = wss.length;
   do {
     ws = wss.shift()!;
-    ded--;
     if (ded === 0) {
       throw new Error("no ws available");
     }
+    ded--;
   } while (!ws.connected);
   wss.push(ws);
 
   return ws;
 }
 
-const startingCoord: [number, number] = [1079, 0];
+const startingCoord: [number, number] = [1030, 70];
 const currentCoord: [number, number] = [...startingCoord];
 const offset: [number, number] = [0, 0];
 
@@ -140,6 +142,6 @@ async function getColor(
     console.log("Placing pixel at", coord, "...");
 
     ws.emit("place", coord[0], coord[1], color);
-    await new Promise((resolve) => setTimeout(resolve, 5)); // cool down
+    await new Promise((resolve) => setTimeout(resolve, 2)); // cool down
   }
 })();
