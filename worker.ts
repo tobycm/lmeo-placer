@@ -1,82 +1,50 @@
-import { Image } from "image-pixels";
-import io, { Socket } from "socket.io-client";
 import { isMainThread, workerData } from "worker_threads";
+import WebSocket from "ws";
+import { Job } from "./place.js";
 
-if (isMainThread) {
-  throw new Error("this file can only be run as a worker");
-}
+if (isMainThread) throw new Error("this file can only be run as a worker");
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface WorkerData {
-  place: Image;
-  canvas: Image;
-  startingCoord: [number, number];
-  finalX: number;
-  yOffset: number;
+  id: number;
+  jobs: Job[];
 }
 
-const { place, canvas, startingCoord, finalX, yOffset } =
-  workerData as WorkerData;
+const { id, jobs } = workerData as WorkerData;
 
-let ws: Socket | undefined;
+let ws: WebSocket | undefined;
 let ready = false;
-
-const maxRetries = 40;
-let retries = 0;
 
 async function getWS(): Promise<void> {
   do {
-    ws = io("wss://foloplace.tobycm.systems", { transports: ["websocket"] });
-    ws.on("connect", () => {
+    ws = new WebSocket("wss://foloplace.tobycm.systems/ws");
+    ws.on("open", () => {
       ready = true;
+      console.log("WS", id, "ready");
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  } while (!ws.connected);
+    await sleep(1000);
+  } while (!ws || ws.readyState !== WebSocket.OPEN);
 }
 
-const currentCoord: [number, number] = [...startingCoord];
+async function getJob(): Promise<Job> {
+  let job: Job | undefined;
 
-async function getCoord(): Promise<[number, number]> {
-  const coord: [number, number] = [currentCoord[0], currentCoord[1]];
+  do {
+    job = jobs.shift();
+    if (!job) continue;
+    if (job.locked) job = undefined;
 
-  if (currentCoord[0] === finalX) {
-    // done
-    process.exit(0);
-  } else {
-    currentCoord[0]++;
-  }
+    if (job) {
+      job.locked = true;
+      return job;
+    }
 
-  return coord;
-}
+    await sleep(100);
+  } while (!job);
 
-let currentPixel = 0;
-const finalPixel = place.width - 1 + yOffset * place.width;
-
-currentPixel += yOffset * place.width;
-
-async function getColor(
-  coords: [number, number]
-): Promise<Uint8Array | undefined> {
-  if (currentPixel === finalPixel) {
-    currentPixel = 0;
-  }
-
-  const r = place.data[currentPixel * 4];
-  const g = place.data[currentPixel * 4 + 1];
-  const b = place.data[currentPixel * 4 + 2];
-
-  if (
-    canvas.data[coords[0] * 4 + coords[1] * canvas.width * 4] === r &&
-    canvas.data[coords[0] * 4 + coords[1] * canvas.width * 4 + 1] === g &&
-    canvas.data[coords[0] * 4 + coords[1] * canvas.width * 4 + 2] === b
-  ) {
-    currentPixel++;
-    return;
-  }
-  const color = new Uint8Array([r, g, b]);
-  currentPixel++;
-
-  return color;
+  return job;
 }
 
 (async () => {
@@ -88,17 +56,22 @@ async function getColor(
       return;
     }
 
-    let coord: [number, number] = [0, 0];
-    let color: Uint8Array | undefined;
+    const job = await getJob();
 
-    while (color === undefined || color.constructor !== Uint8Array) {
-      coord = await getCoord();
-      color = await getColor(coord);
-    }
+    console.log("Placing pixel at", job.x, job.y, "...");
 
-    console.log("Placing pixel at", coord, "...");
+    const data = new Uint8Array(11);
+    const view = new DataView(data.buffer);
 
-    ws!.emit("place", coord[0], coord[1], color);
-    await new Promise((resolve) => setTimeout(resolve, 250)); // cool down
+    view.setUint32(0, job.x);
+    view.setUint32(4, job.y);
+
+    data[8] = job.color[0];
+    data[9] = job.color[1];
+    data[10] = job.color[2];
+
+    ws?.send(data);
+
+    await sleep(200); // cool down
   }
 })();
