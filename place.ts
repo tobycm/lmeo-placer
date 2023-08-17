@@ -13,24 +13,22 @@ const { data: image, width, height } = await pixel("place.png");
 
 let masterWs = new WebSocket("wss://foloplace.tobycm.systems/ws");
 
-masterWs.on("message", (message: MessageEvent<ArrayBuffer>) => {
-  if (message.data.byteLength !== 11) return;
+masterWs.on("message", (message: Buffer) => {
+  if (message.length !== 11) return;
 
-  const view = new DataView(message.data);
+  const view = new DataView(Uint8Array.from(message).buffer);
 
   const x = view.getUint32(0);
   const y = view.getUint32(4);
 
-  const color = new Uint8Array(message.data.slice(8));
-
   const index = x * 4 + y * canvasWidth * 4;
 
-  currentCanvas[index] = color[0];
-  currentCanvas[index + 1] = color[1];
-  currentCanvas[index + 2] = color[2];
+  currentCanvas[index] = message[8];
+  currentCanvas[index + 1] = message[9];
+  currentCanvas[index + 2] = message[10];
 });
 
-const number_of_ws = 10;
+const number_of_ws = 20;
 
 const wss: WebSocket[] = [];
 
@@ -42,6 +40,10 @@ async function newWs(num: number): Promise<void> {
   ws.addEventListener("open", () => {
     console.log("ws", num, "ready");
     readying--;
+  });
+
+  ws.addEventListener("close", () => {
+    newWs(num);
   });
 
   wss.push(ws);
@@ -63,7 +65,7 @@ async function getWS(): Promise<WebSocket> {
   return ws;
 }
 
-const startingCoord: [number, number] = [880, 320];
+const startingCoord: [number, number] = [0, 320];
 const currentCoord: [number, number] = [...startingCoord];
 const offset: [number, number] = [0, 0];
 
@@ -155,8 +157,7 @@ async function getColor(
     view.setUint8(9, color[1]);
     view.setUint8(10, color[2]);
 
-    console.log(data);
     ws.send(data);
-    await sleep(20);
+    await sleep(50);
   }
 })();
