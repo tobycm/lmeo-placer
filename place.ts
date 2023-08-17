@@ -28,41 +28,40 @@ masterWs.on("message", (message: Buffer) => {
   currentCanvas[index + 2] = message[10];
 });
 
-const number_of_ws = 20;
+const numberOfWs = 20;
 
 const wss: WebSocket[] = [];
 
-let readying = number_of_ws;
+let readying = numberOfWs;
 
-async function newWs(num: number): Promise<void> {
+function newWs() {
   const ws = new WebSocket("wss://foloplace.tobycm.systems/ws");
 
   ws.addEventListener("open", () => {
-    console.log("ws", num, "ready");
     readying--;
   });
 
-  ws.addEventListener("close", () => {
-    newWs(num);
-  });
-
   wss.push(ws);
-  await sleep(75);
 }
 
 (async () => {
-  for (let i = 0; i < number_of_ws; i++) await newWs(i);
+  for (let i = 0; i < numberOfWs; i++) {
+    newWs();
+    await sleep(75);
+  }
 })();
 
 async function getWS(): Promise<WebSocket> {
-  let ws: WebSocket;
-  do {
-    ws = wss.shift()!;
-    await sleep(10);
-  } while (!ws || ws.readyState !== WebSocket.OPEN);
-  wss.push(ws);
-
-  return ws;
+  while (true) {
+    const ws = wss.shift();
+    if (!ws) continue;
+    if (ws.readyState !== WebSocket.OPEN) {
+      if (wss.length === numberOfWs) newWs();
+      continue;
+    }
+    wss.push(ws);
+    return ws;
+  }
 }
 
 const startingCoord: [number, number] = [0, 320];
@@ -158,6 +157,6 @@ async function getColor(
     view.setUint8(10, color[2]);
 
     ws.send(data);
-    await sleep(50);
+    // await sleep(50);
   }
 })();
