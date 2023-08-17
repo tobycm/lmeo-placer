@@ -156,34 +156,7 @@ async function getColor(
     view.setUint8(9, color[1]);
     view.setUint8(10, color[2]);
 
-    function send() {
-      const timeout = setTimeout(() => {
-        send();
-      }, 2000);
-
-      ws.send(data);
-
-      function messageEvent(message: Buffer) {
-        if (message.length !== 11) return;
-
-        const view = new DataView(Uint8Array.from(message).buffer);
-
-        const index =
-          view.getUint32(0) * 4 + view.getUint32(4) * canvasWidth * 4;
-
-        if (
-          currentCanvas[index] === view.getUint8(8) &&
-          currentCanvas[index + 1] === view.getUint8(9) &&
-          currentCanvas[index + 2] === view.getUint8(10)
-        )
-          return;
-        clearTimeout(timeout);
-        ws.off("message", messageEvent);
-      }
-      ws.on("message", messageEvent);
-    }
-
-    send();
+    ws.send(data);
     await sleep(5);
   }
 })();
