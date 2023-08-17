@@ -84,7 +84,6 @@ async function getCoord(): Promise<[number, number]> {
   } else if (currentCoord[0] === finalCoord[0]) {
     currentCoord[1]++;
     currentCoord[0] = startingCoord[0];
-    await sleep(100);
   } else {
     currentCoord[0]++;
   }
