@@ -184,6 +184,6 @@ async function getColor(
     }
 
     send();
-    // await sleep(50);
+    await sleep(5);
   }
 })();
